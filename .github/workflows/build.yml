@@ -13,14 +13,23 @@ jobs:
 
     steps:
     - uses: actions/checkout@v4
-
     
     - name: Delete GitHub release associated with the tag
       run: |
-        git tag -d latest  # Delete tag locally
-        git push origin --delete latest # Delete tag remotely
+        # Delete the remote tag if it exists
+        if git ls-remote --tags origin | grep -q "refs/tags/latest"; then
+        git push origin --delete latest  # Delete tag remotely
+        fi
+
+        # Find the release ID associated with the 'latest' tag
         RELEASE_ID=$(gh release list --repo ${{ github.repository }} | grep latest | awk '{print $1}')
-        gh release delete $RELEASE_ID --repo ${{ github.repository }} --yes  # Delete the release
+    
+        # Check if the release ID is valid and delete it
+        if [ -n "$RELEASE_ID" ]; then
+          gh release delete $RELEASE_ID --repo ${{ github.repository }} --yes  # Delete the release
+        else
+          echo "No release found with the 'latest' tag."
+        fi
 
     - name: Get Deps
       run: |
