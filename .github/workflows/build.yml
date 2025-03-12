@@ -14,6 +14,14 @@ jobs:
     steps:
     - uses: actions/checkout@v4
 
+    
+    - name: Delete GitHub release associated with the tag
+      run: |
+        git tag -d latest  # Delete tag locally
+        git push origin --delete latest # Delete tag remotely
+        RELEASE_ID=$(gh release list --repo ${{ github.repository }} | grep latest | awk '{print $1}')
+        gh release delete $RELEASE_ID --repo ${{ github.repository }} --yes  # Delete the release
+
     - name: Get Deps
       run: |
         sudo apt-get install git fakeroot build-essential \
@@ -24,3 +32,20 @@ jobs:
 
     - name: Create it
       run: make -j$(expr $(nproc) \* 2)
+    
+    - name: Upload artifact
+      uses: actions/upload-artifact@v4.6.1
+      with:
+        name: kernel
+        path: arch/x86/boot/bzImage
+
+    - name: Upload to releases
+    # Upload to GitHub releases for x86_32
+    - name: Upload to Releases
+      uses: softprops/action-gh-release@v1
+      with: 
+        files: "arch/x86/boot/bzImage"
+        tag_name: latest
+        token: ${{ secrets.GITHUB_TOKEN }}
+    
+        
